@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - Pac-Man Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pac-man-yellow: #FFCC00;
+            --pac-man-blue: #0000AA;
+            --ghost-red: #FF0000;
+            --screen-green: #00FF00;
+            --inter-font: 'Inter', sans-serif;
+            --arcade-font: 'Press Start 2P', cursive;
+        }
+
+        body {
+            font-family: var(--inter-font);
+            background-color: #111827;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .arcade-screen {
+            background-color: var(--pac-man-blue);
+            border: 12px solid #000;
+            box-shadow: 0 0 40px rgba(0, 255, 0, 0.4), inset 0 0 20px rgba(0, 255, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            aspect-ratio: 1 / 1.2;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .arcade-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0.2) 50%, transparent 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.05), rgba(0, 0, 255, 0.05));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            border-radius: 10px;
+            opacity: 0.5;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+            margin-top: 1rem;
+        }
+
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: 900;
+            cursor: pointer;
+            user-select: none;
+            background-color: #000000;
+            border: 4px solid var(--pac-man-yellow);
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            color: var(--screen-green);
+            font-family: var(--arcade-font);
+        }
+
+        .cell:hover:not(.x):not(.o) {
+            background-color: #333;
+        }
+
+        .cell.x {
+            color: var(--pac-man-yellow);
+            animation: popIn 0.3s ease-out;
+        }
+
+        .cell.o {
+            color: var(--ghost-red);
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .winner-cell {
+            background-color: rgba(0, 255, 0, 0.7);
+            border-color: var(--screen-green);
+            animation: pulse-win 0.8s infinite alternate;
+        }
+
+        @keyframes pulse-win {
+            from { box-shadow: 0 0 10px var(--screen-green); }
+            to { box-shadow: 0 0 25px var(--screen-green); }
+        }
+        
+        @keyframes countdown-pulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        .animating-text {
+            animation: countdown-pulse 1s ease-out forwards;
+        }
+
+        .main-button {
+            font-family: var(--arcade-font);
+            text-shadow: 2px 2px 0px #000;
+            transition: transform 0.1s ease-out, background-color 0.2s;
+        }
+
+        .main-button:active {
+            transform: scale(0.95);
+        }
+
+        .deco-xo {
+            font-family: var(--arcade-font);
+            font-size: 4rem; 
+            text-shadow: 4px 4px 0px #000;
+            line-height: 1;
+            animation: bounce-xo 2s ease-in-out infinite;
+        }
+
+        .deco-xo:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .deco-xo:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .deco-xo:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce-xo {
+            0%, 100% { transform: translateY(0) rotate(-15deg); }
+            50% { transform: translateY(-20px) rotate(-15deg); }
+        }
+
+        .deco-xo:nth-child(2) {
+            animation-name: bounce-xo-2;
+        }
+
+        @keyframes bounce-xo-2 {
+            0%, 100% { transform: translateY(0) rotate(5deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        .deco-xo:nth-child(3) {
+            animation-name: bounce-xo-3;
+        }
+
+        @keyframes bounce-xo-3 {
+            0%, 100% { transform: translateY(0) rotate(15deg); }
+            50% { transform: translateY(-20px) rotate(15deg); }
+        }
+
+        .win-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            border-radius: 10px;
+        }
+
+        .win-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .win-symbol {
+            font-size: 8rem;
+            font-family: var(--arcade-font);
+            animation: winBounce 0.6s ease-out infinite alternate;
+            margin-bottom: 2rem;
+        }
+
+        @keyframes winBounce {
+            0% { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.2) rotate(10deg); }
+        }
+
+        .win-text {
+            font-family: var(--arcade-font);
+            font-size: 2.5rem;
+            color: var(--screen-green);
+            text-shadow: 0 0 20px var(--screen-green);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (min-width: 640px) {
+            .arcade-screen {
+                aspect-ratio: 1 / 1.2;
+                padding: 2rem;
+            }
+            .cell {
+                font-size: 3rem;
+            }
+            .deco-xo {
+                font-size: 6rem; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="arcade-screen">
+    <h1 class="text-3xl sm:text-4xl font-black text-center mb-2 text-white uppercase" style="font-family: var(--arcade-font); text-shadow: 4px 4px 0px var(--pac-man-yellow);">
+        Tic Tac Toe
+    </h1>
+
+    <div id="status" class="font-bold mb-6 text-center" style="font-family: var(--arcade-font);">
+    </div>
+
+    <div id="game-container" class="w-full flex-grow flex flex-col justify-center items-center">
+        
+        <div id="decorative-xo" class="flex justify-center items-center mb-8">
+            <span class="deco-xo mr-4" style="color: var(--pac-man-yellow);">X</span>
+            <span class="deco-xo mr-4" style="color: var(--ghost-red);">O</span>
+            <span class="deco-xo" style="color: var(--pac-man-yellow);">X</span>
+        </div>
+        
+        <div id="welcome-screen" class="space-y-6 w-full max-w-xs">
+            <button id="start-human-button" onclick="startHumanGame()" class="main-button w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-lg">
+                VS HUMAN (2P)
+            </button>
+            <button id="start-ai-button" onclick="startAIGame()" class="main-button w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg">
+                VS ROBOT (1P)
+            </button>
+            <button id="quit-game-button" onclick="quitGame()" class="main-button w-full py-4 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg shadow-lg">
+                QUIT GAME
+            </button>
+        </div>
+
+        <div id="board" class="board-grid hidden">
+        </div>
+
+        <div id="countdown-overlay" class="absolute inset-0 bg-black bg-opacity-90 hidden flex flex-col justify-center items-center rounded-lg" style="z-index: 10;">
+            <span id="countdown-text" class="text-6xl text-green-400" style="font-family: var(--arcade-font); text-shadow: 0 0 20px var(--screen-green);"></span>
+        </div>
+
+        <div id="pause-overlay" class="absolute inset-0 bg-black bg-opacity-75 hidden flex flex-col justify-center items-center rounded-lg">
+            <h2 class="text-4xl text-white mb-8" style="font-family: var(--arcade-font);">PAUSED</h2>
+            <button onclick="resumeGame()" class="main-button px-8 py-4 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-xl">
+                RESUME
+            </button>
+        </div>
+
+        <div id="win-overlay" class="win-overlay">
+            <div id="win-symbol" class="win-symbol"></div>
+            <div id="win-text" class="win-text"></div>
+        </div>
+    </div>
+
+    <div id="game-controls" class="mt-8 pt-4 w-full flex justify-center space-x-4 border-t-2 border-dashed border-gray-400 hidden">
+        <button id="home-game-button" onclick="goToHome()" class="main-button px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm sm:text-base">
+            HOME
+        </button>
+        <button id="pause-game-button" onclick="pauseGame()" class="main-button px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm sm:text-base">
+            PAUSE
+        </button>
+        <button id="reset-game-button" onclick="resetGame(true)" class="main-button px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg text-sm sm:text-base">
+            RESET
+        </button>
+    </div>
+
+</div>
+
+<script>
+const statusDisplay = document.getElementById('status');
+const board = document.getElementById('board');
+const welcomeScreen = document.getElementById('welcome-screen');
+const gameControls = document.getElementById('game-controls');
+const pauseOverlay = document.getElementById('pause-overlay');
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownText = document.getElementById('countdown-text');
+const decorativeXO = document.getElementById('decorative-xo');
+const winOverlay = document.getElementById('win-overlay');
+const winSymbol = document.getElementById('win-symbol');
+const winText = document.getElementById('win-text');
+
+let gameBoard = ['', '', '', '', '', '', '', '', ''];
+let currentPlayer = 'X';
+let gameActive = false;
+let gamePaused = false;
+let isVsAI = false;
+let gameMode = 'menu';
+
+const winningConditions = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+];
+
+function setHomeStatus() {
+    statusDisplay.classList.remove('text-xl', 'sm:text-2xl', 'text-white', 'h-8', 'text-sm', 'text-green-400', 'h-6'); 
+    statusDisplay.innerHTML = ''; 
+}
+
+function setGameStatus() {
+    statusDisplay.classList.add('text-xl', 'sm:text-2xl', 'text-white', 'h-8');
+    statusDisplay.classList.remove('text-sm', 'text-green-400', 'h-6');
+}
+
+function createBoard() {
+    board.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.index = i;
+        cell.addEventListener('click', handleCellClick);
+        board.appendChild(cell);
+    }
+}
+
+function handleCellClick(clickedCellEvent) {
+    let clickedCellIndex;
+    let clickedCell;
+
+    if (typeof clickedCellEvent === 'number') {
+        clickedCellIndex = clickedCellEvent;
+        clickedCell = board.children[clickedCellIndex];
+    } else {
+        if (!gameActive || gamePaused) return;
+        clickedCell = clickedCellEvent.target;
+        clickedCellIndex = parseInt(clickedCell.dataset.index);
+    }
+    
+    if (gameBoard[clickedCellIndex] !== '') return;
+    
+    if (isVsAI && currentPlayer === 'O' && typeof clickedCellEvent !== 'number') return;
+
+    gameBoard[clickedCellIndex] = currentPlayer;
+    clickedCell.innerText = currentPlayer;
+    clickedCell.classList.add(currentPlayer.toLowerCase());
+
+    checkResult();
+    
+    if (gameActive) {
+        changePlayer();
+        if (isVsAI && currentPlayer === 'O') {
+            setTimeout(handleAIMove, 500);
+        }
+    }
+}
+
+function changePlayer() {
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    statusDisplay.innerHTML = `PLAYER <span class="text-xl sm:text-3xl">${currentPlayer}</span> TURN`;
+    
+    if (isVsAI) {
+        statusDisplay.innerHTML = currentPlayer === 'X' 
+            ? `YOUR TURN (<span style="color: var(--pac-man-yellow);">X</span>)`
+            : `ROBOT TURN (<span style="color: var(--ghost-red);">O</span>)`;
+    }
+}
+
+function showWinAnimation(winner) {
+    winSymbol.innerText = winner;
+    winSymbol.style.color = winner === 'X' ? 'var(--pac-man-yellow)' : 'var(--ghost-red)';
+    
+    const winnerName = isVsAI && winner === 'O' ? 'ROBOT' : `${winner}`;
+    winText.innerText = `${winnerName} WINS!`;
+    
+    winOverlay.classList.add('show');
+    
+    setTimeout(() => {
+        winOverlay.classList.remove('show');
+        startCountdown();
+    }, 3000);
+}
+
+function checkResult() {
+    let roundWon = false;
+    let winningLine = null;
+
+    for (let i = 0; i < winningConditions.length; i++) {
+        const condition = winningConditions[i];
+        let a = gameBoard[condition[0]];
+        let b = gameBoard[condition[1]];
+        let c = gameBoard[condition[2]];
+
+        if (a === '' || b === '' || c === '') continue;
+
+        if (a === b && b === c) {
+            roundWon = true;
+            winningLine = condition;
+            break;
+        }
+    }
+
+    if (roundWon) {
+        const winnerName = isVsAI && currentPlayer === 'O' ? 'ROBOT' : `PLAYER ${currentPlayer}`;
+        statusDisplay.innerHTML = `<span style="color: ${currentPlayer === 'X' ? 'var(--pac-man-yellow)' : 'var(--ghost-red)'}; font-size: 2rem;">${winnerName}</span> WINS!`;
+        gameActive = false;
+        gameMode = 'over';
+        highlightWinnerCells(winningLine);
+        showWinAnimation(currentPlayer);
+        return;
+    }
+
+    let roundDraw = !gameBoard.includes('');
+    if (roundDraw) {
+        statusDisplay.innerHTML = 'DRAW! GET READY FOR ROUND TWO!';
+        gameActive = false;
+        gameMode = 'over';
+        setTimeout(startCountdown, 3000); 
+        return;
+    }
+}
+
+function highlightWinnerCells(line) {
+    line.forEach(index => {
+        board.children[index].classList.add('winner-cell');
+    });
+}
+
+function handleAIMove() {
+    if (!gameActive || currentPlayer !== 'O') return;
+
+    const availableIndices = [];
+    gameBoard.forEach((cell, index) => {
+        if (cell === '') {
+            availableIndices.push(index);
+        }
+    });
+
+    if (availableIndices.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableIndices.length);
+        const moveIndex = availableIndices[randomIndex];
+        
+        handleCellClick(moveIndex);
+    }
+}
+
+function startCountdown() {
+    countdownOverlay.classList.remove('hidden');
+    gameMode = 'countdown';
+    
+    let count = 3;
+    const interval = setInterval(() => {
+        
+        countdownText.innerText = count > 0 ? count : 'GO!';
+        
+        countdownText.classList.remove('animating-text');
+        void countdownText.offsetWidth; 
+        countdownText.classList.add('animating-text');
+
+        if (count < 0) {
+            clearInterval(interval);
+            countdownOverlay.classList.add('hidden');
+            resetGame(false); 
+            return;
+        }
+        count--;
+    }, 1000);
+
+    countdownText.innerText = '3';
+    countdownText.classList.remove('animating-text');
+    void countdownText.offsetWidth;
+    countdownText.classList.add('animating-text');
+}
+
+function resetGame(manual = true) {
+    gameBoard = ['', '', '', '', '', '', '', '', ''];
+    currentPlayer = 'X';
+    gameActive = true;
+    gamePaused = false;
+    gameMode = 'playing';
+    
+    setGameStatus(); 
+
+    if (isVsAI) {
+        statusDisplay.innerHTML = `YOUR TURN (<span style="color: var(--pac-man-yellow);">X</span>)`;
+    } else {
+        statusDisplay.innerHTML = `PLAYER <span class="text-xl sm:text-3xl">${currentPlayer}</span> TURN`;
+    }
+
+    board.querySelectorAll('.cell').forEach(cell => {
+        cell.innerText = '';
+        cell.classList.remove('x', 'o', 'winner-cell');
+    });
+    pauseOverlay.classList.add('hidden');
+    
+    if (!manual) {
+        statusDisplay.innerHTML = 'FIGHT!';
+        setTimeout(() => {
+            changePlayer(currentPlayer === 'O' ? 'X' : 'O'); 
+            if (isVsAI && currentPlayer === 'O') {
+                setTimeout(handleAIMove, 500); 
+            }
+        }, 1000);
+    } else {
+        if (isVsAI && currentPlayer === 'O') {
+            setTimeout(handleAIMove, 500); 
+        }
+    }
+}
+
+function startGameSetup() {
+    welcomeScreen.classList.add('hidden');
+    decorativeXO.classList.add('hidden'); 
+    board.classList.remove('hidden');
+    gameControls.classList.remove('hidden');
+    setGameStatus(); 
+    gameMode = 'playing';
+    createBoard();
+    resetGame(true);
+}
+
+function startHumanGame() {
+    isVsAI = false;
+    startGameSetup();
+}
+
+function startAIGame() {
+    isVsAI = true;
+    startGameSetup();
+}
+
+function pauseGame() {
+    if (gameActive) {
+        gamePaused = true;
+        gameActive = false;
+        gameMode = 'paused';
+        pauseOverlay.classList.remove('hidden');
+        statusDisplay.innerHTML = 'GAME PAUSED';
+    }
+}
+
+function resumeGame() {
+    if (gameMode === 'paused') {
+        gamePaused = false;
+        gameActive = true;
+        gameMode = 'playing';
+        pauseOverlay.classList.add('hidden');
+        
+        if (isVsAI) {
+            statusDisplay.innerHTML = currentPlayer === 'X' 
+                ? `YOUR TURN (<span style="color: var(--pac-man-yellow);">X</span>)`
+                : `ROBOT TURN (<span style="color: var(--ghost-red);">O</span>)`;
+            
+            if (currentPlayer === 'O') {
+                setTimeout(handleAIMove, 500);
+            }
+        } else {
+            statusDisplay.innerHTML = `PLAYER <span class="text-xl sm:text-3xl">${currentPlayer}</span> TURN`;
+        }
+    }
+}
+
+function goToHome() {
+    gameBoard = ['', '', '', '', '', '', '', '', ''];
+    currentPlayer = 'X';
+    gameActive = false;
+    gamePaused = false;
+    isVsAI = false;
+    gameMode = 'menu';
+    
+    board.classList.add('hidden');
+    gameControls.classList.add('hidden');
+    pauseOverlay.classList.add('hidden');
+    countdownOverlay.classList.add('hidden');
+    winOverlay.classList.remove('show');
+    
+    welcomeScreen.classList.remove('hidden');
+    decorativeXO.classList.remove('hidden'); 
+    setHomeStatus(); 
+}
+
+function quitGame() {
+    if (gameMode === 'menu') {
+        statusDisplay.innerHTML = 'PLEASE CLOSE YOUR BROWSER TAB TO EXIT';
+        setGameStatus(); 
+        
+        setTimeout(() => {
+            setHomeStatus();
+        }, 3000);
+    }
+}
+
+window.onload = function() {
+    board.classList.add('hidden');
+    gameControls.classList.add('hidden');
+    welcomeScreen.classList.remove('hidden');
+    setHomeStatus(); 
+    gameMode = 'menu';
+}
+</script>
+
+</body>
+</html>
